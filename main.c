@@ -290,7 +290,7 @@ int main(int argc, char **argv)
 			 * we have to check if accept() returned an error.
 			 */
 			if (sock > 0) {
-				pid = fork();
+				pid = 0;
 				if (!pid) {       /* child */
 					close(0);
 					close(1);

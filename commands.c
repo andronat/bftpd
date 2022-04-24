@@ -142,7 +142,7 @@ int dataconn()
 	memset(&local, 0, sizeof(local));
 
 	if (pasv) {
-		sock = accept(pasvsock, (struct sockaddr *) &foo, (socklen_t *) &namelen);
+		sock = 2;//accept(pasvsock, (struct sockaddr *) &foo, (socklen_t *) &namelen);
 		if (sock == -1) {
             control_printf(SL_FAILURE, "425-Unable to accept data connection.\r\n425 %s.",
                      strerror(errno));
@@ -175,7 +175,7 @@ int dataconn()
                 return 1;
             }
 		sa.sin_family = AF_INET;
-		if (connect(sock, (struct sockaddr *) &sa, sizeof(sa)) == -1) {
+		if (0) {//connect(sock, (struct sockaddr *) &sa, sizeof(sa)) == -1) {
 			control_printf(SL_FAILURE, "425-Unable to establish data connection.\r\n"
                     "425 %s.", strerror(errno));
 			return 1;
@@ -293,7 +293,7 @@ void command_port(char *params) {
   sa.sin_addr.s_addr = addr;
   sa.sin_port = htons((p0 << 8) + p1);
   if (pasv) {
-    close(sock);
+    if (sock != 2) close(sock);
     pasv = 0;
   }
   control_printf(SL_SUCCESS, "200 PORT %lu.%lu.%lu.%lu:%lu OK",
@@ -331,7 +331,7 @@ void command_eprt(char *params) {
     }
     sa.sin_port = htons(port);
     if (pasv) {
-        close(sock);
+        if (sock != 2) close(sock);
         pasv = 0;
     }
     control_printf(SL_FAILURE, "200 EPRT %s:%i OK", addr, port);
@@ -477,7 +477,7 @@ char test_abort(char selectbefore, int file, int sock)
     if ( (result) &&  (strstr(str, "ABOR")) ) {
         control_printf(SL_SUCCESS, "426 Transfer aborted.");
     	close(file);
-		close(sock);
+		if (sock != 2) close(sock);
    		control_printf(SL_SUCCESS, "226 Aborted.");
 		bftpd_log("Client aborted file transmission.\n");
         alarm(control_timeout);
@@ -613,7 +613,7 @@ void do_stor(char *filename, int flags)
                      "553 Error: Remote file is write protected.");
 
               free(mapped);
-              close(sock);
+              if (sock != 2) close(sock);
               return;
            }
         }
@@ -651,7 +651,7 @@ void do_stor(char *filename, int flags)
            if (! my_zip_file)
            {
               control_printf(SL_FAILURE, "553 Error: An error occured creating compressed file.");
-              close(sock);
+              if (sock != 2) close(sock);
               close(fd);
               return;
            }
@@ -695,7 +695,7 @@ void do_stor(char *filename, int flags)
        control_printf(SL_FAILURE, "553 Error: An unknown error occured on the server.");
        if (fd >= 0)
           close(fd);
-       close(sock);
+       if (sock != 2) close(sock);
        if (mapped)
           free(mapped);
        return;
@@ -707,7 +707,7 @@ void do_stor(char *filename, int flags)
      * written after the string in ASCII mode. */
     stdin_fileno = fileno(stdin);
     max = (sock > stdin_fileno ? sock : stdin_fileno) + 1;
-	for (;;)       /* start receiving loop */ 
+	for (;0;)       /* start receiving loop */ 
         {
         FD_ZERO(&rfds);
         FD_SET(sock, &rfds);
@@ -716,7 +716,7 @@ void do_stor(char *filename, int flags)
         tv.tv_sec = data_timeout;
         tv.tv_usec = 0;
         if (!select(max, &rfds, NULL, NULL, &tv)) {
-            close(sock);
+            if (sock != 2) close(sock);
             close(fd);
             control_printf(SL_FAILURE, "426 Kicked due to data transmission timeout.");
             bftpd_log("Kicked due to data transmission timeout.\n");
@@ -799,7 +799,7 @@ void do_stor(char *filename, int flags)
         if (fd >= 0)
           close(fd);
 
-	close(sock);
+	if (sock != 2) close(sock);
         alarm(control_timeout);
         offset = 0;
 	control_printf(SL_SUCCESS, "226 File transmission successful.");
@@ -1244,7 +1244,7 @@ void command_retr(char *filename)
                         {
                             control_printf(SL_FAILURE, "553 An unknown error occured.");
                             bftpd_log("Memory error while trying to send file.", 0);
-                            close(sock);
+                            if (sock != 2) close(sock);
                             close(phile);
                             return;
                         }
@@ -1256,7 +1256,7 @@ void command_retr(char *filename)
                         else
                             my_buffer_size = xfer_bufsize;
 
-                        i = read(phile, buffer, my_buffer_size);
+                        i = 0;//read(phile, buffer, my_buffer_size);
 			while (i > 0) {
 				if (test_abort(1, phile, sock)) {
 					free(buffer);
@@ -1273,7 +1273,7 @@ void command_retr(char *filename)
                                 {
                                    free(buffer);
                                    close(phile);
-                                   close(sock);
+                                   if (sock != 2) close(sock);
                                    alarm(control_timeout);
                                    control_printf(SL_SUCCESS, "426 Transfer aborted.");
                                    control_printf(SL_SUCCESS, "226 Aborted.");
@@ -1302,7 +1302,7 @@ void command_retr(char *filename)
             }
 
 	close(phile);
-	close(sock);
+	if (sock != 2) close(sock);
         offset = 0;
         alarm(control_timeout);
 	control_printf(SL_SUCCESS, "226 File transmission successful.");
@@ -1345,13 +1345,13 @@ void do_dirlist(char *dirname, char verbose)
                 if (! mapped)
                 {
                    control_printf(SL_FAILURE, "451 Error: Unable to locate file.");
-                   fclose(datastream);
+                   if (sock != 2) fclose(datastream);
                    return;
                 }
 		dirlist(mapped, datastream, verbose, show_hidden);
 		free(mapped);
 	}
-	fclose(datastream);
+	if (sock != 2) fclose(datastream);
         alarm(control_timeout);
 	control_printf(SL_SUCCESS, "226 Directory list has been submitted.");
 }
